@@ -31,7 +31,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 
 ROOT = Path(__file__).resolve().parent
-INSTANCE_DIR = ROOT / "instance"
+INSTANCE_DIR = Path("/tmp/forensix")
 EVIDENCE_DIR = INSTANCE_DIR / "evidence"
 DATABASE = INSTANCE_DIR / "forensix.sqlite3"
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
@@ -369,12 +369,12 @@ STUDENT_SAMPLE_CASES = {
     },
 }
 
-app = Flask(__name__, instance_path=str(INSTANCE_DIR))
+__name__, instance_path=str(INSTANCE_DIR))
 app.config.update(
     SECRET_KEY=os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32),
     MAX_CONTENT_LENGTH=MAX_UPLOAD_BYTES,
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
+    SESSIONapp = Flask(_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.environ.get("FLASK_SESSION_COOKIE_SECURE", "").lower()
     in {"1", "true", "yes"},
     PERMANENT_SESSION_LIFETIME=60 * 60 * 8,
