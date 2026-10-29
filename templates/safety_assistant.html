@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Personal Cyber Safety Assistant{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('dashboard') }}">Safety Dashboard</a> / Assistant{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">PERSONAL USER WORKSPACE · LOCAL GUIDANCE</div><h1>Personal Cyber Safety Assistant</h1><p>Choose your language and ask about account safety, suspicious messages, or digital payments.</p></div><span class="prototype-pill"><i></i> NO EXTERNAL AI</span></div>
+<div class="notice notice-warning"><span>!</span><div><b>Protect your private information</b><p>Never enter passwords, OTPs, UPI PINs, card details, or recovery codes. This helper cannot access or check your accounts, device, messages, or payment history. Do not upload screenshots here.</p></div></div>
+<section class="panel assistant-panel">
+  <div class="assistant-header"><div class="assistant-avatar">✳</div><div><b>Personal Cyber Safety Helper</b><small>Rule-based general safety steps · {{ languages[language].name }}</small></div></div>
+  <form method="post" class="assistant-input student-assistant-form">{{ csrf_token() }}<label class="field"><span>Preferred language</span><select name="language">{% for code, item in languages.items() %}<option value="{{ code }}" {{ 'selected' if language == code else '' }}>{{ item.name }}</option>{% endfor %}</select></label><label class="field"><span>Your question</span><textarea name="question" maxlength="1200" rows="3" required placeholder="Describe the general issue. Do not include private details."></textarea></label><button class="button button-primary" type="submit">Show safe next steps →</button></form>
+  {% if answer %}<div class="chat-message"><div class="assistant-avatar small">✳</div><div class="message-bubble answer"><b>{{ languages[language].name }} · General safety steps</b><p>{{ answer }}</p></div></div>{% endif %}
+  <div class="learning-body">Local, rule-based guidance only; not a connected AI or live account check. For suspected fraud, contact your bank or service provider through its official channel.</div>
+</section>
+{% endblock %}

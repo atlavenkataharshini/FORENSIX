@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07121f">
+  <title>{% block title %}FORENSIX{% endblock %} · FORENSIX</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="{{ url_for('dashboard') }}"><span class="brand-mark">F</span><span>FORENSIX<small>Evidence intelligence</small></span></a>
+      <div class="side-label">{{ current_user.role|upper if current_user else 'WORKSPACE' }} WORKSPACE</div>
+      {% if current_user and current_user.role == 'investigator' %}
+        <nav class="navigation">
+          <a class="{{ 'active' if request.endpoint == 'dashboard' else '' }}" href="{{ url_for('dashboard') }}"><span>◫</span> Dashboard</a>
+          <a class="{{ 'active' if request.endpoint in ['cases', 'case_detail', 'update_case'] else '' }}" href="{{ url_for('cases') }}"><span>▤</span> Cases</a>
+          <a class="{{ 'active' if request.endpoint == 'evidence_page' else '' }}" href="{{ url_for('evidence_page') }}"><span>⬡</span> Evidence</a>
+          <a class="{{ 'active' if request.endpoint == 'timeline' else '' }}" href="{{ url_for('timeline') }}"><span>⌁</span> Timeline</a>
+          <a class="{{ 'active' if request.endpoint == 'assistant' else '' }}" href="{{ url_for('assistant') }}"><span>✳</span> Assistant</a>
+        </nav>
+      {% elif current_user and current_user.role == 'student' %}
+        <nav class="navigation">
+          <a class="{{ 'active' if request.endpoint in ['dashboard', 'student_case'] else '' }}" href="{{ url_for('dashboard') }}"><span>◫</span> Student dashboard</a>
+          <a class="{{ 'active' if request.endpoint in ['student_courses', 'student_course', 'student_lesson'] else '' }}" href="{{ url_for('student_courses') }}"><span>▤</span> Course catalog</a>
+          <a class="{{ 'active' if request.endpoint == 'student_assistant' else '' }}" href="{{ url_for('student_assistant') }}"><span>✳</span> Learning assistant</a>
+          <a class="{{ 'active' if request.endpoint == 'student_lab' else '' }}" href="{{ url_for('student_lab') }}"><span>⌁</span> Log analysis lab</a>
+        </nav>
+      {% elif current_user %}
+        <nav class="navigation">
+          <a class="{{ 'active' if request.endpoint == 'dashboard' else '' }}" href="{{ url_for('dashboard') }}"><span>◫</span> Safety dashboard</a>
+          <a class="{{ 'active' if request.endpoint == 'personal_safety' else '' }}" href="{{ url_for('personal_safety') }}"><span>✓</span> Account safety check</a>
+          <a class="{{ 'active' if request.endpoint == 'safety_assistant' else '' }}" href="{{ url_for('safety_assistant') }}"><span>✳</span> Safety assistant</a>
+        </nav>
+      {% endif %}
+      <div class="sidebar-bottom">
+        <div class="local-status"><span class="status-dot"></span><div><b>{{ current_user.username if current_user else 'Local workspace' }}</b><small>{{ current_user.role|title if current_user else 'Demo environment' }}</small></div></div>
+        <div class="sidebar-disclaimer">Educational prototype. Not validated for actual evidence handling.</div>
+        {% if current_user %}<form method="post" action="{{ url_for('logout') }}" class="logout-form">{{ csrf_token() }}<button type="submit" class="sidebar-logout">Sign out</button></form>{% endif %}
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><button class="menu-button" id="menuToggle" aria-label="Toggle navigation">☰</button><div class="breadcrumb">FORENSIX <span>/</span> {% block breadcrumb %}Overview{% endblock %}</div><div class="topbar-right"><span class="secure-label"><i></i> PROTOTYPE • PRIVATE WORKSPACE</span><div class="avatar" aria-label="{{ current_user.role|title if current_user else 'User' }}">{{ current_user.username[0]|upper if current_user else 'F' }}</div></div></header>
+      <section class="page-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}<button type="button" class="flash-close" aria-label="Dismiss">×</button></div>{% endfor %}</div>{% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+      </section>
+      <footer class="footer"><span>FORENSIX <span class="muted">· Educational prototype</span></span><span>Evidence. Intelligence. Investigation.</span></footer>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07121f">
+  <title>Create account · FORENSIX</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <a class="brand auth-brand" href="{{ url_for('login') }}"><span class="brand-mark">F</span><span>FORENSIX<small>Evidence intelligence</small></span></a>
+    <section class="auth-card">
+      <div class="eyebrow">CREATE AN ACCOUNT</div>
+      <h1>Get started</h1>
+      <p class="auth-intro">Choose a learning lab or personal safety workspace. Investigator access is not available here.</p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+      {% endwith %}
+      <form method="post" class="auth-form">
+        {{ csrf_token() }}
+        <label class="field"><span>Username</span><input name="username" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9_.-]+" required></label>
+        <label class="field"><span>Email</span><input type="email" name="email" autocomplete="email" maxlength="254" required></label>
+        <label class="field"><span>Workspace</span><select name="role" required><option value="student">Cybersecurity Student</option><option value="user">Personal Cyber Safety</option></select></label>
+        <label class="field"><span>Password <small>(12 characters minimum)</small></span><span class="password-field"><input id="password" type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required><button type="button" class="password-toggle" data-password-toggle="password" aria-label="Show password">Show</button></span></label>
+        <button class="button button-primary auth-submit" type="submit">Create account <span>→</span></button>
+      </form>
+      <p class="auth-switch">Already registered? <a href="{{ url_for('login') }}">Sign in</a></p>
+    </section>
+    <p class="auth-disclaimer">Never enter account passwords, OTPs, payment PINs, or recovery codes into FORENSIX.</p>
+  </main>
+</body>
+</html>

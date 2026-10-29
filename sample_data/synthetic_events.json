@@ -1,0 +1,46 @@
+{
+  "events": [
+    {
+      "timestamp": "2026-10-25T09:10:00+00:00",
+      "event_type": "login_failed",
+      "account": "demo.user",
+      "host": "TEST-DEVICE-01",
+      "details": "Synthetic failed sign-in attempt"
+    },
+    {
+      "timestamp": "2026-10-25T09:12:00+00:00",
+      "event_type": "login_failed",
+      "account": "demo.user",
+      "host": "TEST-DEVICE-01",
+      "details": "Synthetic failed sign-in attempt"
+    },
+    {
+      "timestamp": "2026-10-25T09:18:00+00:00",
+      "event_type": "login_success",
+      "account": "demo.user",
+      "host": "TEST-DEVICE-01",
+      "details": "Synthetic successful sign-in; fictional account"
+    },
+    {
+      "timestamp": "2026-10-25T09:22:30+00:00",
+      "event_type": "process_start",
+      "account": "demo.user",
+      "host": "TEST-DEVICE-01",
+      "details": "Synthetic process demo-app.exe started"
+    },
+    {
+      "timestamp": "2026-10-25T09:31:00+00:00",
+      "event_type": "file_activity",
+      "account": "demo.user",
+      "host": "TEST-DEVICE-01",
+      "details": "Synthetic read of sample.txt"
+    },
+    {
+      "timestamp": "2026-10-25T09:35:00+00:00",
+      "event_type": "network_connection",
+      "account": "demo.user",
+      "host": "TEST-DEVICE-01",
+      "details": "Simulated connection to 192.0.2.25 (reserved example address)"
+    }
+  ]
+}

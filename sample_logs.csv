@@ -1,0 +1,6 @@
+timestamp,event_type,source_ip,outcome,account,host,details
+2026-10-28 09:00:00,login,192.168.1.10,success,student@example.com,Laptop-01,Normal login
+2026-10-28 09:05:00,login,192.168.1.15,failed,student@example.com,Laptop-01,Incorrect password
+2026-10-28 09:06:00,login,192.168.1.15,failed,student@example.com,Laptop-01,Incorrect password
+2026-10-28 09:07:00,login,192.168.1.15,failed,student@example.com,Laptop-01,Incorrect password
+2026-10-28 09:10:00,login,192.168.1.10,success,student@example.com,Laptop-01,Login successful

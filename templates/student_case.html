@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ case.title }}{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('dashboard') }}">Student Lab</a> / {{ case.title }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">STUDENT PRACTICE CASE · SYNTHETIC</div><h1>{{ case.title }}</h1><p>{{ case.summary }}</p></div><a class="button button-outline" href="{{ url_for('dashboard') }}">← Back to Student Dashboard</a></div>
+<div class="notice notice-warning"><span>!</span><div><b>Fictional practice material only</b><p>This scenario and every reference below are synthetic training content. They do not describe a real alert, account, organization, or confirmed attack. Treat the supplied records as limited evidence and do not infer identity or intent.</p></div></div>
+<section class="panel"><div class="panel-heading"><div><h2>Available scenario evidence</h2><p>Fictional exercise materials supplied for this case.</p></div><span class="tiny-badge">SYNTHETIC RECORDS</span></div>{% for item in case.evidence %}<article class="scenario-evidence"><span class="event-type">{{ item.reference }}</span><div><b>{{ item.name }}</b><p>{{ item.description }}</p></div></article>{% endfor %}</section>
+<section class="panel"><div class="panel-heading"><div><h2>Scenario timeline</h2><p>Chronological fictional events; an absent record is unknown, not proof nothing happened.</p></div></div><div class="table-wrap"><table><thead><tr><th>TIME (UTC)</th><th>SYNTHETIC EVENT</th><th>SOURCE</th></tr></thead><tbody>{% for item in case.timeline %}<tr><td class="mono">{{ item.timestamp }}</td><td>{{ item.event }}</td><td><span class="event-type">{{ item.source }}</span></td></tr>{% endfor %}</tbody></table></div></section>
+<div class="dashboard-grid student-grid">
+  <section class="panel"><div class="panel-heading"><div><h2>Questions to investigate</h2><p>Use evidence references in your answers.</p></div></div><ol class="learning-steps">{% for question in case.questions %}<li>{{ question }}</li>{% endfor %}</ol></section>
+  <section class="panel"><div class="panel-heading"><div><h2>Guided investigation steps</h2><p>Stay within the supplied training material.</p></div></div><ol class="learning-steps">{% for step in case.steps %}<li>{{ step }}</li>{% endfor %}</ol></section>
+</div>
+<div class="heading-actions scenario-actions"><a class="button button-outline" href="{{ url_for('dashboard') }}">← Back to Student Dashboard</a><a class="button button-primary" href="{{ url_for('student_lab') }}">Open Log Analysis Lab →</a></div>
+{% endblock %}

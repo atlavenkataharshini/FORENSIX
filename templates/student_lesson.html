@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ lesson.title }} · {{ course.title }}{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('student_courses') }}">Course Catalog</a> / <a href="{{ url_for('student_course', course_id=course.id) }}">{{ course.title }}</a> / Lesson {{ lesson_index + 1 }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">LESSON {{ lesson_index + 1 }} OF {{ lesson_count }} · {{ course.title }}</div><h1>{{ lesson.title }}</h1><p>Work through the material, then mark the lesson complete to save your progress.</p></div><a class="button button-outline" href="{{ url_for('student_course', course_id=course.id) }}">← Back to course</a></div>
+<article class="panel lesson-content"><div class="panel-heading"><div><h2>Learning material</h2><p>Evidence-based practice</p></div>{% if completed %}<span class="badge status-resolved">COMPLETED</span>{% endif %}</div><div class="lesson-reading"><p>{{ lesson.content }}</p><h3>Practice exercise</h3><p>{{ lesson.exercise }}</p><div class="notice notice-info"><span>ⓘ</span><div><b>Keep conclusions proportionate</b><p>This is educational content. Use only synthetic or explicitly authorized data, and do not infer identity or wrongdoing from a single record.</p></div></div></div></article>
+<nav class="lesson-navigation" aria-label="Lesson navigation">
+  {% if lesson_index > 0 %}<a class="button button-outline" href="{{ url_for('student_lesson', course_id=course.id, lesson_index=lesson_index - 1) }}">← Previous lesson</a>{% else %}<span></span>{% endif %}
+  {% if not completed %}<form method="post" action="{{ url_for('student_lesson', course_id=course.id, lesson_index=lesson_index) }}">{{ csrf_token() }}<button class="button button-primary" type="submit">Mark complete{% if lesson_index + 1 < lesson_count %} &amp; next{% endif %} →</button></form>{% elif lesson_index + 1 < lesson_count %}<a class="button button-primary" href="{{ url_for('student_lesson', course_id=course.id, lesson_index=lesson_index + 1) }}">Next lesson →</a>{% else %}<a class="button button-primary" href="{{ url_for('student_course', course_id=course.id) }}">Finish course →</a>{% endif %}
+</nav>
+{% endblock %}

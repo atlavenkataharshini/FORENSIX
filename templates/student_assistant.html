@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Student Learning Assistant{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('dashboard') }}">Student Dashboard</a> / Learning Assistant{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">STUDENT WORKSPACE · LOCAL RULE-BASED HELPER</div><h1>Learning assistant</h1><p>Ask about FORENSIX courses, the Student Lab, or fictional practice cases.</p></div><span class="prototype-pill"><i></i> NO EXTERNAL AI</span></div>
+<div class="notice notice-warning"><span>!</span><div><b>Honest limitations</b><p>This is a small rule-based helper, not a language model. It cannot inspect uploaded files from this page, access external accounts, or make up findings. Use the Lab to analyze supported CSV/JSON exports.</p></div></div>
+<section class="panel assistant-panel">
+  <div class="assistant-header"><div class="assistant-avatar">✳</div><div><b>FORENSIX Learning Helper</b><small>Course catalog and feature guidance</small></div></div>
+  <form method="post" class="assistant-input student-assistant-form">{{ csrf_token() }}<label class="field"><span>Your learning question</span><textarea name="question" maxlength="1200" rows="3" required placeholder="For example: What does Digital Forensics cover?"></textarea></label><button class="button button-primary" type="submit">Get guidance →</button></form>
+  {% if answer %}<div class="chat-message"><div class="assistant-avatar small">✳</div><div class="message-bubble answer"><b>Rule-based guidance</b><p>{{ answer }}</p>{% if matched_course %}<a class="button button-outline button-small" href="{{ url_for('student_course', course_id=matched_course.id) }}">Open {{ matched_course.title }} →</a>{% endif %}<div class="prompt-chips"><a href="{{ url_for('student_courses') }}">Course catalog</a><a href="{{ url_for('student_lab') }}">Student Lab</a><a href="{{ url_for('student_case', slug='email-security-incident') }}">Sample case</a></div></div></div>{% endif %}
+</section>
+{% endblock %}

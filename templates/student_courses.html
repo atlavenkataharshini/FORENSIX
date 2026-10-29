@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Course Catalog{% endblock %}
+{% block breadcrumb %}<a href="{{ url_for('dashboard') }}">Student Dashboard</a> / Course Catalog{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">STUDENT WORKSPACE</div><h1>Course catalog</h1><p>Browse practical learning paths in cybersecurity and digital forensics. Open a course to read lessons and save your progress.</p></div></div>
+<section class="panel">
+  <form class="filter-bar" method="get" action="{{ url_for('student_courses') }}">
+    <input name="q" value="{{ query }}" maxlength="100" placeholder="Search courses…" aria-label="Search courses">
+    <select name="difficulty" aria-label="Filter by difficulty"><option value="">All levels</option>{% for level in difficulties %}<option value="{{ level }}" {{ 'selected' if selected_difficulty == level else '' }}>{{ level }}</option>{% endfor %}</select>
+    <select name="category" aria-label="Filter by subject"><option value="">All subjects</option>{% for item in categories %}<option value="{{ item }}" {{ 'selected' if selected_category == item else '' }}>{{ item }}</option>{% endfor %}</select>
+    <button class="button button-small button-outline" type="submit">Apply filters</button>
+    {% if query or selected_difficulty or selected_category %}<a class="text-link" href="{{ url_for('student_courses') }}">Clear</a>{% endif %}
+  </form>
+</section>
+{% if courses %}
+<section class="learning-grid course-catalog-grid" aria-label="Available courses">
+  {% for course in courses %}
+  <a class="learning-card" href="{{ url_for('student_course', course_id=course.id) }}">
+    <span class="tiny-badge">{{ course.difficulty|upper }} · {{ course.category|upper }}</span>
+    <h3>{{ course.title }}</h3>
+    <p>{{ course.description }}</p>
+    <div class="course-progress"><span>{{ course.completed_lessons }} of {{ course.lesson_count }} lessons completed · {{ course.progress_percent }}%</span><span class="progress-track"><span style="width: {{ course.progress_percent }}%"></span></span></div>
+    <span class="learning-card-link">{% if course.completed_lessons %}Continue learning{% else %}Open course{% endif %} →</span>
+  </a>
+  {% endfor %}
+</section>
+{% else %}
+<section class="panel empty-state"><span>⌕</span><h3>No matching courses</h3><p>Try a different search term or remove one of the filters.</p></section>
+{% endif %}
+{% endblock %}

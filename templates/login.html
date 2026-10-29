@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07121f">
+  <title>Sign in · FORENSIX</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script defer src="{{ url_for('static', filename='js/main.js') }}"></script>
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <a class="brand auth-brand" href="{{ url_for('login') }}"><span class="brand-mark">F</span><span>FORENSIX<small>Evidence intelligence</small></span></a>
+    <section class="auth-card">
+      <div class="eyebrow">SECURE WORKSPACE</div>
+      <h1>Welcome back</h1>
+      <p class="auth-intro">Sign in to open your role-specific FORENSIX workspace.</p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+      {% endwith %}
+      <form method="post" class="auth-form">
+        {{ csrf_token() }}
+        <label class="field"><span>Username or email</span><input name="identity" autocomplete="username" maxlength="254" required autofocus></label>
+        <label class="field"><span>Password</span><span class="password-field"><input id="password" type="password" name="password" autocomplete="current-password" maxlength="128" required><button type="button" class="password-toggle" data-password-toggle="password" aria-label="Show password">Show</button></span></label>
+        <button class="button button-primary auth-submit" type="submit">Sign in <span>→</span></button>
+      </form>
+      <p class="auth-switch">New to FORENSIX? <a href="{{ url_for('register') }}">Create a Student or Personal User account</a></p>
+      <p class="auth-footnote">Investigator accounts are created through controlled local administration, not public registration.</p>
+    </section>
+    <p class="auth-disclaimer">Student prototype · Use synthetic or authorized data only.</p>
+  </main>
+</body>
+</html>
