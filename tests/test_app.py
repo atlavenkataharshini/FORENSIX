@@ -81,6 +81,17 @@ class ForensixTestCase(unittest.TestCase):
             evidence_id = evidence["id"]
         response = self.client.post(f"/evidence/{evidence_id}/verify", follow_redirects=True)
         self.assertIn(b"Integrity verified", response.data)
+        downloaded = self.client.get(f"/evidence/{evidence_id}/download")
+        self.assertEqual(downloaded.status_code, 200)
+        self.assertEqual(downloaded.data, content)
+        downloaded.close()
+        with forensix.app.app_context():
+            access_record = forensix.get_db().execute(
+                "SELECT action FROM audit_records WHERE evidence_id = ? "
+                "ORDER BY rowid DESC LIMIT 1",
+                (evidence_id,),
+            ).fetchone()
+        self.assertEqual(access_record["action"], "evidence_accessed")
         timeline = self.client.get(f"/timeline?case_id={case_id}")
         self.assertLess(timeline.data.index(b"09:00:00"), timeline.data.index(b"10:00:00"))
 
@@ -313,7 +324,31 @@ class ForensixTestCase(unittest.TestCase):
 
     def test_authentication_and_public_role_registration(self):
         anonymous = forensix.app.test_client()
-        self.assertEqual(anonymous.get("/").status_code, 302)
+        landing = anonymous.get("/")
+        self.assertEqual(landing.status_code, 200)
+        self.assertIn(b"Choose a FORENSIX workspace", landing.data)
+        self.assertIn(b"Sign up", landing.data)
+        self.assertIn(b"Professional sign in", landing.data)
+        self.assertIn(b"/login/student", landing.data)
+        self.assertIn(b"/login/user", landing.data)
+        self.assertIn(b"/login/investigator", landing.data)
+        authenticated_workspaces = self.client.get("/workspaces")
+        self.assertEqual(authenticated_workspaces.status_code, 200)
+        self.assertIn(b"Each dashboard and its data remain separate", authenticated_workspaces.data)
+        self.assertIn(b"Other workspaces", self.client.get("/").data)
+        self.assertEqual(anonymous.get("/login/student").status_code, 200)
+        self.assertEqual(anonymous.get("/login/investigator").status_code, 200)
+        signup = anonymous.get("/signup")
+        self.assertEqual(signup.status_code, 200)
+        self.assertIn(b"Professional Investigation", signup.data)
+        wrong_role = anonymous.post(
+            "/login/student",
+            data={
+                "identity": "investigator@example.test",
+                "password": "InvestigatorTest!2026",
+            },
+        )
+        self.assertIn(b"username/email or password was not recognized", wrong_role.data)
         denied = anonymous.post(
             "/login", data={"identity": "missing", "password": "not-a-real-password"}
         )
@@ -332,11 +367,13 @@ class ForensixTestCase(unittest.TestCase):
         login_page = self.client.get("/login")
         self.assertIn(b"Show password", login_page.data)
         response = self.client.post(
-            "/register",
+            "/register/student",
             data={
+                "full_name": "New Student",
                 "username": "new-student",
                 "email": "new-student@example.test",
                 "password": "StudentAccount!2026",
+                "confirm_password": "StudentAccount!2026",
                 "role": "student",
             },
             follow_redirects=True,
@@ -344,22 +381,367 @@ class ForensixTestCase(unittest.TestCase):
         self.assertIn(b"Account created", response.data)
         with forensix.app.app_context():
             registered = forensix.get_db().execute(
-                "SELECT password_hash, role FROM users WHERE username = ?",
+                "SELECT password_hash, role, full_name FROM users WHERE username = ?",
                 ("new-student",),
             ).fetchone()
             self.assertEqual(registered["role"], "student")
+            self.assertEqual(registered["full_name"], "New Student")
             self.assertNotEqual(registered["password_hash"], "StudentAccount!2026")
-        response = self.client.post(
-            "/register",
+        response = anonymous.post(
+            "/signup/investigator",
             data={
-                "username": "not-investigator",
-                "email": "not-investigator@example.test",
-                "password": "AnotherAccount!2026",
+                "full_name": "Pending Investigator",
+                "username": "pending-investigator",
+                "email": "pending-investigator@example.test",
+                "password": "PendingAccount!2026",
+                "confirm_password": "PendingAccount!2026",
                 "role": "investigator",
             },
             follow_redirects=True,
         )
-        self.assertIn(b"only be Students or Personal Users", response.data)
+        self.assertIn(b"Professional application submitted", response.data)
+        with forensix.app.app_context():
+            pending = forensix.get_db().execute(
+                "SELECT id, role, verification_status FROM users WHERE username = ?",
+                ("pending-investigator",),
+            ).fetchone()
+        self.assertEqual(pending["role"], "investigator")
+        self.assertEqual(pending["verification_status"], "pending")
+        pending_client = forensix.app.test_client()
+        login = pending_client.post(
+            "/login/investigator",
+            data={
+                "identity": "pending-investigator",
+                "password": "PendingAccount!2026",
+            },
+        )
+        self.assertEqual(login.status_code, 302)
+        pending_dashboard = pending_client.get("/", follow_redirects=True)
+        self.assertIn(b"awaiting review", pending_dashboard.data)
+        self.assertEqual(pending_client.get("/cases").status_code, 403)
+        with forensix.app.app_context():
+            forensix.get_db().execute(
+                "UPDATE users SET verification_status = 'verified' WHERE id = ?",
+                (pending["id"],),
+            )
+            forensix.get_db().commit()
+        self.assertEqual(pending_client.get("/cases").status_code, 200)
+
+    def test_student_ai_requires_explicit_opt_in_and_keeps_fallback(self):
+        with forensix.app.app_context():
+            student_id = forensix.create_user(
+                "ai-student",
+                "ai-student@example.test",
+                "StudentAccount!2026",
+                "student",
+            )
+        client = forensix.app.test_client()
+        with client.session_transaction() as session:
+            session["user_id"] = student_id
+        with patch("app.openai_assistance") as ai:
+            response = client.post(
+                "/student/assistant",
+                data={"question": "Explain a security course"},
+            )
+            ai.assert_not_called()
+        self.assertIn(b"Local rule-based guidance", response.data)
+
+        with patch(
+            "app.openai_assistance",
+            return_value=("A safe study explanation.", None),
+        ) as ai:
+            response = client.post(
+                "/student/assistant",
+                data={
+                    "question": "Explain a security course",
+                    "language": "en",
+                    "send_to_ai": "yes",
+                },
+            )
+        ai.assert_called_once()
+        self.assertIn(b"A safe study explanation.", response.data)
+        self.assertIn(b"OpenAI-generated study assistance", response.data)
+
+    def test_personal_assistant_reports_missing_openai_without_fake_ai_answer(self):
+        with forensix.app.app_context():
+            user_id = forensix.create_user(
+                "ai-personal",
+                "ai-personal@example.test",
+                "PersonalAccount!2026",
+                "user",
+            )
+        client = forensix.app.test_client()
+        with client.session_transaction() as session:
+            session["user_id"] = user_id
+        with patch.dict(os.environ, {"OPENAI_API_KEY": ""}, clear=False):
+            response = client.post(
+                "/safety/assistant",
+                data={
+                    "question": "Someone accessed my email",
+                    "language": "en",
+                    "send_to_ai": "yes",
+                },
+            )
+        self.assertIn(b"OpenAI is not configured", response.data)
+        self.assertIn(b"Local rule-based guidance", response.data)
+        self.assertNotIn(b"OpenAI-generated safety guidance", response.data)
+
+    def test_personal_assistant_history_is_private_and_clearable(self):
+        with forensix.app.app_context():
+            first_user_id = forensix.create_user(
+                "history-owner",
+                "history-owner@example.test",
+                "PersonalAccount!2026",
+                "user",
+            )
+            second_user_id = forensix.create_user(
+                "history-other",
+                "history-other@example.test",
+                "PersonalAccount!2026",
+                "user",
+            )
+        first_client = forensix.app.test_client()
+        with first_client.session_transaction() as session:
+            session["user_id"] = first_user_id
+        response = first_client.post(
+            "/safety/assistant",
+            data={
+                "question": "history-only-question-472",
+                "language": "en",
+            },
+        )
+        self.assertIn(b"history-only-question-472", response.data)
+
+        second_client = forensix.app.test_client()
+        with second_client.session_transaction() as session:
+            session["user_id"] = second_user_id
+        self.assertNotIn(
+            b"history-only-question-472",
+            second_client.get("/safety/assistant").data,
+        )
+        cleared = first_client.post(
+            "/safety/assistant/history/clear",
+            follow_redirects=True,
+        )
+        self.assertIn(b"history cleared", cleared.data)
+        self.assertNotIn(b"history-only-question-472", cleared.data)
+        with forensix.app.app_context():
+            remaining = forensix.get_db().execute(
+                "SELECT COUNT(*) FROM assistant_messages WHERE user_id = ?",
+                (first_user_id,),
+            ).fetchone()[0]
+        self.assertEqual(remaining, 0)
+
+    def test_investigation_ai_only_receives_bounded_parsed_records_when_opted_in(self):
+        case_id = self.create_case()
+        with patch(
+            "app.openai_assistance",
+            return_value=("Unverified observation.", None),
+        ) as ai:
+            response = self.client.post(
+                "/assistant",
+                data={"case_id": case_id},
+            )
+            ai.assert_not_called()
+        self.assertIn(b"Local structured-record review", response.data)
+
+        with patch(
+            "app.openai_assistance",
+            return_value=("Unverified observation.", None),
+        ) as ai:
+            response = self.client.post(
+                "/assistant",
+                data={"case_id": case_id, "send_to_ai": "yes"},
+            )
+        self.assertIn(b"Unverified observation.", response.data)
+        sent_records = ai.call_args.args[1]
+        self.assertIn('"events": []', sent_records)
+        self.assertIn('"total_event_count": 0', sent_records)
+        self.assertNotIn("stored_filename", sent_records)
+
+    def test_login_throttle_limits_repeated_failures(self):
+        client = forensix.app.test_client()
+        for _ in range(forensix.MAX_LOGIN_ATTEMPTS):
+            response = client.post(
+                "/login",
+                data={
+                    "identity": "investigator@example.test",
+                    "password": "incorrect",
+                },
+            )
+            self.assertIn(b"username/email or password was not recognized", response.data)
+        locked = client.post(
+            "/login",
+            data={
+                "identity": "investigator@example.test",
+                "password": "InvestigatorTest!2026",
+            },
+        )
+        self.assertIn(b"Too many sign-in attempts", locked.data)
+
+    def test_profile_update_keeps_role_and_verification_unverified(self):
+        page = self.client.get("/profile")
+        self.assertEqual(page.status_code, 200)
+        response = self.client.post(
+            "/profile",
+            data={
+                "full_name": "Updated Investigator",
+                "email": "updated-investigator@example.test",
+                "designation": "Forensic Analyst",
+                "organization": "Training Lab",
+                "department": "Digital Evidence",
+            },
+            follow_redirects=True,
+        )
+        self.assertIn(b"Profile updated", response.data)
+        with forensix.app.app_context():
+            saved = forensix.get_db().execute(
+                "SELECT full_name, email, role, designation, organization, department, "
+                "verification_status FROM users WHERE id = ?",
+                (self.investigator_id,),
+            ).fetchone()
+        self.assertEqual(saved["full_name"], "Updated Investigator")
+        self.assertEqual(saved["email"], "updated-investigator@example.test")
+        self.assertEqual(saved["role"], "investigator")
+        self.assertEqual(saved["designation"], "Forensic Analyst")
+        self.assertEqual(saved["verification_status"], "unverified")
+
+    def test_password_reset_uses_one_time_hashed_expiring_token(self):
+        response = self.client.get("/login")
+        self.assertIn(b"Forgot your password?", response.data)
+        with patch.dict(
+            os.environ,
+            {"SMTP_HOST": "smtp.example.test", "SMTP_FROM": "noreply@example.test"},
+            clear=False,
+        ):
+            with patch("app.send_password_reset_email") as send_email:
+                requested = self.client.post(
+                    "/forgot-password",
+                    data={"email": "investigator@example.test"},
+                    follow_redirects=True,
+                )
+        self.assertIn(b"Delivery is not confirmed", requested.data)
+        send_email.assert_called_once()
+        token = send_email.call_args.args[1]
+        with forensix.app.app_context():
+            saved_token = forensix.get_db().execute(
+                "SELECT token_hash, expires_at, used_at FROM password_reset_tokens"
+            ).fetchone()
+        self.assertNotEqual(saved_token["token_hash"], token)
+        self.assertIsNone(saved_token["used_at"])
+
+        reset_page = self.client.get(f"/reset-password/{token}")
+        self.assertEqual(reset_page.status_code, 200)
+        self.assertEqual(reset_page.headers["Cache-Control"], "no-store")
+        self.assertEqual(reset_page.headers["Referrer-Policy"], "no-referrer")
+        completed = self.client.post(
+            f"/reset-password/{token}",
+            data={
+                "password": "ReplacementPassword!2026",
+                "confirm_password": "ReplacementPassword!2026",
+            },
+            follow_redirects=True,
+        )
+        self.assertIn(b"Password reset", completed.data)
+        with forensix.app.app_context():
+            used_token = forensix.get_db().execute(
+                "SELECT used_at FROM password_reset_tokens"
+            ).fetchone()
+        self.assertIsNotNone(used_token["used_at"])
+
+        login = forensix.app.test_client()
+        old_password = login.post(
+            "/login",
+            data={
+                "identity": "investigator@example.test",
+                "password": "InvestigatorTest!2026",
+            },
+        )
+        self.assertIn(b"username/email or password was not recognized", old_password.data)
+        new_password = login.post(
+            "/login",
+            data={
+                "identity": "investigator@example.test",
+                "password": "ReplacementPassword!2026",
+            },
+        )
+        self.assertEqual(new_password.status_code, 302)
+        reused = self.client.get(f"/reset-password/{token}")
+        self.assertIn(b"invalid, expired, or already used", reused.data)
+
+    def test_password_recovery_without_mail_configuration_is_explicit(self):
+        with patch.dict(
+            os.environ,
+            {"SMTP_HOST": "", "SMTP_FROM": ""},
+            clear=False,
+        ):
+            response = self.client.post(
+                "/forgot-password",
+                data={"email": "investigator@example.test"},
+                follow_redirects=True,
+            )
+        self.assertIn(b"not configured on this local server", response.data)
+        with forensix.app.app_context():
+            token_count = forensix.get_db().execute(
+                "SELECT COUNT(*) FROM password_reset_tokens"
+            ).fetchone()[0]
+        self.assertEqual(token_count, 0)
+
+    def test_case_collaboration_requires_verified_user_and_enforces_read_only(self):
+        case_id = self.create_case()
+        with forensix.app.app_context():
+            collaborator_id = forensix.create_user(
+                "case-reviewer",
+                "case-reviewer@example.test",
+                "ReviewerAccount!2026",
+                "investigator",
+            )
+        response = self.client.post(
+            f"/cases/{case_id}/access",
+            data={"username": "case-reviewer", "permission": "read-only"},
+            follow_redirects=True,
+        )
+        self.assertIn(b"verified by a trusted administrator", response.data)
+
+        with forensix.app.app_context():
+            forensix.get_db().execute(
+                "UPDATE users SET verification_status = 'verified' WHERE id = ?",
+                (collaborator_id,),
+            )
+            forensix.get_db().commit()
+        response = self.client.post(
+            f"/cases/{case_id}/access",
+            data={"username": "case-reviewer", "permission": "read-only"},
+            follow_redirects=True,
+        )
+        self.assertIn(b"Access granted to case-reviewer", response.data)
+
+        collaborator = forensix.app.test_client()
+        with collaborator.session_transaction() as session:
+            session["user_id"] = collaborator_id
+        self.assertEqual(collaborator.get(f"/cases/{case_id}").status_code, 200)
+        denied_update = collaborator.post(
+            f"/cases/{case_id}/update",
+            data={
+                "title": "Changed without write access",
+                "description": "",
+                "status": "Open",
+            },
+        )
+        self.assertEqual(denied_update.status_code, 403)
+        denied_upload = collaborator.post(
+            "/evidence",
+            data={"case_id": case_id},
+        )
+        self.assertEqual(denied_upload.status_code, 403)
+        review = collaborator.post("/assistant", data={"case_id": case_id})
+        self.assertIn(case_id.encode(), review.data)
+        revoked = self.client.post(
+            f"/cases/{case_id}/access/{collaborator_id}/remove",
+            follow_redirects=True,
+        )
+        self.assertIn(b"Access removed for case-reviewer", revoked.data)
+        self.assertNotIn(case_id.encode(), collaborator.get("/assistant").data)
 
     def test_student_cannot_access_investigator_routes(self):
         case_id = self.create_case()
@@ -516,7 +898,7 @@ class ForensixTestCase(unittest.TestCase):
         student = forensix.app.test_client()
         with student.session_transaction() as session:
             session["user_id"] = student_id
-        self.assertIn(b"NO EXTERNAL AI", student.get("/student/assistant").data)
+        self.assertIn(b"AI REQUIRES OPT-IN", student.get("/student/assistant").data)
         answer = student.post(
             "/student/assistant",
             data={"question": "Can you explain Introduction to Digital Forensics?"},
@@ -534,9 +916,9 @@ class ForensixTestCase(unittest.TestCase):
             data={"language": "hi", "question": "मेरा खाता सुरक्षित है?"},
         )
         self.assertIn("आधिकारिक ऐप".encode("utf-8"), answer.data)
-        self.assertIn(b"NO EXTERNAL AI", answer.data)
+        self.assertIn(b"AI REQUIRES OPT-IN", answer.data)
         self.assertIn("हाल के साइन-इन".encode("utf-8"), answer.data)
-        self.assertNotIn("मेरा खाता सुरक्षित है?".encode("utf-8"), answer.data)
+        self.assertIn("मेरा खाता सुरक्षित है?".encode("utf-8"), answer.data)
         self.assertIn(b'value="hi" selected', personal.get("/safety/assistant").data)
         self.assertEqual(personal.get("/student/assistant").status_code, 403)
 

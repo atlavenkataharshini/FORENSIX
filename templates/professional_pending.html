@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Professional account pending review{% endblock %}
+{% block breadcrumb %}Professional account review{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">PROFESSIONAL APPLICATION</div><h1>Your account is awaiting review</h1><p>Your professional signup is complete. Investigation tools remain unavailable until a trusted administrator verifies your identity and affiliation.</p></div></div>
+<div class="notice notice-warning"><span>!</span><div><b>Pending verification</b><p>Public registration does not verify police, cyber-cell, or professional status. You can update your profile while your application is pending. No case or evidence access is granted yet.</p></div></div>
+<section class="panel"><div class="panel-heading"><div><h2>Application status</h2><p>Signed in as {{ current_user.full_name }} · {{ current_user.email }}</p></div><span class="badge status-contained">{{ current_user.verification_status|title }}</span></div><div class="learning-body"><p>Contact your FORENSIX administrator if you believe your verification is complete.</p><a class="button button-outline button-small" href="{{ url_for('profile') }}">Review my profile →</a></div></section>
+{% endblock %}

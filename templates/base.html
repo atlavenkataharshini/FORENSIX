@@ -13,7 +13,7 @@
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="{{ url_for('dashboard') }}"><span class="brand-mark">F</span><span>FORENSIX<small>Evidence intelligence</small></span></a>
       <div class="side-label">{{ current_user.role|upper if current_user else 'WORKSPACE' }} WORKSPACE</div>
-      {% if current_user and current_user.role == 'investigator' %}
+      {% if current_user and current_user.role == 'investigator' and current_user.verification_status != 'pending' %}
         <nav class="navigation">
           <a class="{{ 'active' if request.endpoint == 'dashboard' else '' }}" href="{{ url_for('dashboard') }}"><span>◫</span> Dashboard</a>
           <a class="{{ 'active' if request.endpoint in ['cases', 'case_detail', 'update_case'] else '' }}" href="{{ url_for('cases') }}"><span>▤</span> Cases</a>
@@ -28,13 +28,15 @@
           <a class="{{ 'active' if request.endpoint == 'student_assistant' else '' }}" href="{{ url_for('student_assistant') }}"><span>✳</span> Learning assistant</a>
           <a class="{{ 'active' if request.endpoint == 'student_lab' else '' }}" href="{{ url_for('student_lab') }}"><span>⌁</span> Log analysis lab</a>
         </nav>
-      {% elif current_user %}
+      {% elif current_user and current_user.role == 'user' %}
         <nav class="navigation">
           <a class="{{ 'active' if request.endpoint == 'dashboard' else '' }}" href="{{ url_for('dashboard') }}"><span>◫</span> Safety dashboard</a>
           <a class="{{ 'active' if request.endpoint == 'personal_safety' else '' }}" href="{{ url_for('personal_safety') }}"><span>✓</span> Account safety check</a>
           <a class="{{ 'active' if request.endpoint == 'safety_assistant' else '' }}" href="{{ url_for('safety_assistant') }}"><span>✳</span> Safety assistant</a>
         </nav>
       {% endif %}
+      {% if current_user %}<nav class="navigation workspace-navigation"><a class="{{ 'active' if request.endpoint == 'workspaces' else '' }}" href="{{ url_for('workspaces') }}"><span>⇄</span> Other workspaces</a></nav>{% endif %}
+      {% if current_user %}<nav class="navigation profile-navigation"><a class="{{ 'active' if request.endpoint == 'profile' else '' }}" href="{{ url_for('profile') }}"><span>◎</span> My profile</a></nav>{% endif %}
       <div class="sidebar-bottom">
         <div class="local-status"><span class="status-dot"></span><div><b>{{ current_user.username if current_user else 'Local workspace' }}</b><small>{{ current_user.role|title if current_user else 'Demo environment' }}</small></div></div>
         <div class="sidebar-disclaimer">Educational prototype. Not validated for actual evidence handling.</div>

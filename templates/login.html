@@ -10,10 +10,10 @@
 </head>
 <body class="auth-page">
   <main class="auth-shell">
-    <a class="brand auth-brand" href="{{ url_for('login') }}"><span class="brand-mark">F</span><span>FORENSIX<small>Evidence intelligence</small></span></a>
+    <a class="brand auth-brand" href="{{ url_for('dashboard') }}"><span class="brand-mark">F</span><span>FORENSIX<small>Evidence intelligence</small></span></a>
     <section class="auth-card">
-      <div class="eyebrow">SECURE WORKSPACE</div>
-      <h1>Welcome back</h1>
+      <div class="eyebrow">{{ role_label|upper if role_label else 'SECURE WORKSPACE' }}</div>
+      <h1>Welcome back{% if role_label %}, {{ role_label }}{% endif %}</h1>
       <p class="auth-intro">Sign in to open your role-specific FORENSIX workspace.</p>
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
@@ -24,8 +24,13 @@
         <label class="field"><span>Password</span><span class="password-field"><input id="password" type="password" name="password" autocomplete="current-password" maxlength="128" required><button type="button" class="password-toggle" data-password-toggle="password" aria-label="Show password">Show</button></span></label>
         <button class="button button-primary auth-submit" type="submit">Sign in <span>→</span></button>
       </form>
-      <p class="auth-switch">New to FORENSIX? <a href="{{ url_for('register') }}">Create a Student or Personal User account</a></p>
-      <p class="auth-footnote">Investigator accounts are created through controlled local administration, not public registration.</p>
+      <p class="auth-switch"><a href="{{ url_for('forgot_password') }}">Forgot your password?</a></p>
+      {% if requested_role %}
+        <p class="auth-switch">New to FORENSIX? <a href="{{ url_for('register', requested_role=requested_role) }}">Create your {{ role_label }} account{% if requested_role == 'investigator' %} or apply{% endif %}</a></p>
+      {% elif not requested_role %}
+        <p class="auth-switch">New to FORENSIX? <a href="{{ url_for('register') }}">Sign up for an account</a></p>
+      {% endif %}
+      <p class="auth-footnote">Professional applications are public; investigation access requires trusted administrator verification.</p>
     </section>
     <p class="auth-disclaimer">Student prototype · Use synthetic or authorized data only.</p>
   </main>

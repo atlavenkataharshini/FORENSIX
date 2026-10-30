@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}My profile{% endblock %}
+{% block breadcrumb %}My profile{% endblock %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">ACCOUNT SETTINGS</div><h1>My profile</h1><p>Update your account contact details. Your workspace role cannot be changed here.</p></div></div>
+<section class="panel form-panel">
+  <div class="panel-heading"><div><h2>Profile details</h2><p>{{ profile.role|title }} workspace · {{ profile.username }}</p></div></div>
+  <form method="post" class="form-grid">
+    {{ csrf_token() }}
+    <label class="field"><span>Full name</span><input name="full_name" value="{{ profile.full_name }}" autocomplete="name" maxlength="120" required></label>
+    <label class="field"><span>Email</span><input type="email" name="email" value="{{ profile.email }}" autocomplete="email" maxlength="254" required></label>
+    {% if profile.role == 'investigator' %}
+      <label class="field"><span>Designation</span><input name="designation" value="{{ profile.designation }}" maxlength="120"></label>
+      <label class="field"><span>Organization</span><input name="organization" value="{{ profile.organization }}" maxlength="120"></label>
+      <label class="field"><span>Department</span><input name="department" value="{{ profile.department }}" maxlength="120"></label>
+      <div class="field field-wide"><span>Professional verification status</span><div class="notice notice-warning"><span>!</span><div><b>{{ profile.verification_status|title }}</b><p>This local prototype does not independently verify professional identity. Do not treat this account as proof of official status.</p></div></div></div>
+    {% endif %}
+    <div class="field-wide"><button class="button button-primary" type="submit">Save profile</button></div>
+  </form>
+</section>
+{% endblock %}

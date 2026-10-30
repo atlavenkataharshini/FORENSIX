@@ -10,23 +10,31 @@
 </head>
 <body class="auth-page">
   <main class="auth-shell">
-    <a class="brand auth-brand" href="{{ url_for('login') }}"><span class="brand-mark">F</span><span>FORENSIX<small>Evidence intelligence</small></span></a>
+    <a class="brand auth-brand" href="{{ url_for('dashboard') }}"><span class="brand-mark">F</span><span>FORENSIX<small>Evidence intelligence</small></span></a>
     <section class="auth-card">
-      <div class="eyebrow">CREATE AN ACCOUNT</div>
+      <div class="eyebrow">{{ ('CREATE ' ~ role_label ~ ' ACCOUNT')|upper if role_label else 'CREATE AN ACCOUNT' }}</div>
       <h1>Get started</h1>
-      <p class="auth-intro">Choose a learning lab or personal safety workspace. Investigator access is not available here.</p>
+      <p class="auth-intro">{% if role_label %}Create your {{ role_label }} workspace account.{% else %}Create an account for the FORENSIX workspace that fits you.{% endif %}</p>
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
       {% endwith %}
       <form method="post" class="auth-form">
         {{ csrf_token() }}
+        <label class="field"><span>Full name</span><input name="full_name" autocomplete="name" maxlength="120" required></label>
         <label class="field"><span>Username</span><input name="username" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9_.-]+" required></label>
         <label class="field"><span>Email</span><input type="email" name="email" autocomplete="email" maxlength="254" required></label>
-        <label class="field"><span>Workspace</span><select name="role" required><option value="student">Cybersecurity Student</option><option value="user">Personal Cyber Safety</option></select></label>
+        {% if requested_role %}
+          <input type="hidden" name="role" value="{{ requested_role }}">
+          <label class="field"><span>Workspace</span><input value="{{ role_label }}" readonly></label>
+        {% else %}
+          <label class="field"><span>Workspace</span><select name="role" required><option value="student">Cybersecurity Student</option><option value="user">Personal Cyber Safety</option><option value="investigator">Professional Investigation — pending review</option></select><small class="role-note">Professional applications require trusted administrator verification before investigation access is enabled.</small></label>
+        {% endif %}
+        {% if requested_role == 'investigator' %}<div class="notice notice-warning"><span>!</span><div><b>Professional account review</b><p>You can apply publicly, but case and evidence features stay locked until a trusted administrator verifies your professional identity. Registration does not certify police or investigator status.</p></div></div>{% endif %}
         <label class="field"><span>Password <small>(12 characters minimum)</small></span><span class="password-field"><input id="password" type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required><button type="button" class="password-toggle" data-password-toggle="password" aria-label="Show password">Show</button></span></label>
+        <label class="field"><span>Confirm password</span><input type="password" name="confirm_password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
         <button class="button button-primary auth-submit" type="submit">Create account <span>→</span></button>
       </form>
-      <p class="auth-switch">Already registered? <a href="{{ url_for('login') }}">Sign in</a></p>
+      <p class="auth-switch">Already registered? <a href="{{ url_for('login', requested_role=requested_role) if requested_role else url_for('login') }}">Sign in</a></p>
     </section>
     <p class="auth-disclaimer">Never enter account passwords, OTPs, payment PINs, or recovery codes into FORENSIX.</p>
   </main>

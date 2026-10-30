@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07121f">
+  <meta name="description" content="FORENSIX learning, personal cyber safety, and evidence-led investigation workspaces.">
+  <title>FORENSIX · Cybersecurity workspaces</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="landing-page">
+  <header class="landing-header">
+    <a class="brand landing-brand" href="{{ url_for('dashboard') }}"><span class="brand-mark">F</span><span>FORENSIX<small>Evidence intelligence</small></span></a>
+    <div class="heading-actions"><a class="button button-outline" href="{{ url_for('login') }}">Sign in</a><a class="button button-primary" href="{{ url_for('register') }}">Sign up</a></div>
+  </header>
+  <main class="landing-main">
+    <section class="landing-hero">
+      <div class="eyebrow">LEARN · PROTECT · INVESTIGATE</div>
+      <h1>Cybersecurity, with a place for <span>every role.</span></h1>
+      <p>Learn practical security skills, build safer personal habits, or organize authorized investigations in a human-led workspace. Each role has a separate dashboard and its own sign-in.</p>
+    </section>
+    {% if current_user %}
+      <div class="notice notice-info workspace-current"><span>◎</span><div><b>Signed in as {{ current_user.username }} · {{ current_user.role|title }}</b><p>Choose another role's sign-in below to switch accounts. Each dashboard and its data remain separate.</p></div><form method="post" action="{{ url_for('logout') }}">{{ csrf_token() }}<button class="button button-outline button-small" type="submit">Sign out</button></form></div>
+    {% endif %}
+    <section class="role-grid" aria-label="Choose a FORENSIX workspace">
+      <article class="role-card">
+        <div class="role-mark cyan">01</div>
+        <div class="eyebrow">LEARN SAFELY</div>
+        <h2>Cybersecurity Student</h2>
+        <p>Explore courses, guided practice cases, and a structured event-analysis lab using authorized sample data.</p>
+        <div class="role-actions">
+          <a class="button button-primary" href="{{ url_for('login', requested_role='student') }}">Student sign in →</a>
+          <a class="text-link" href="{{ url_for('register', requested_role='student') }}">Create student account</a>
+        </div>
+      </article>
+      <article class="role-card">
+        <div class="role-mark green">02</div>
+        <div class="eyebrow">STAY SAFER ONLINE</div>
+        <h2>Personal Cyber Safety</h2>
+        <p>Get simple account-safety checklists and practical guidance without sharing passwords, OTPs, or payment secrets.</p>
+        <div class="role-actions">
+          <a class="button button-primary" href="{{ url_for('login', requested_role='user') }}">Personal sign in →</a>
+          <a class="text-link" href="{{ url_for('register', requested_role='user') }}">Create personal account</a>
+        </div>
+      </article>
+      <article class="role-card">
+        <div class="role-mark purple">03</div>
+        <div class="eyebrow">AUTHORIZED WORK ONLY</div>
+        <h2>Professional Investigation</h2>
+        <p>Manage case-scoped evidence, event timelines, integrity hashes, and cautious investigation assistance.</p>
+        <div class="role-actions">
+          <a class="button button-outline" href="{{ url_for('login', requested_role='investigator') }}">Professional sign in →</a>
+          <a class="text-link" href="{{ url_for('register', requested_role='investigator') }}">Apply for professional account</a>
+          <span class="role-note">Investigation access is locked until a trusted administrator verifies your professional identity.</span>
+        </div>
+      </article>
+    </section>
+    <p class="landing-note">FORENSIX is an educational prototype, not a certified forensic platform. Use only synthetic or authorized data.</p>
+  </main>
+</body>
+</html>
