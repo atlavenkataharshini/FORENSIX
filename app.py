@@ -36,7 +36,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 
 ROOT = Path(__file__).resolve().parent
-INSTANCE_DIR = ROOT / "instance"
+
+INSTANCE_DIR = Path("/tmp/forensix")
 EVIDENCE_DIR = INSTANCE_DIR / "evidence"
 DATABASE = INSTANCE_DIR / "forensix.sqlite3"
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
